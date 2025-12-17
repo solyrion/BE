@@ -65,7 +65,7 @@ jobs:
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER}}@${{ secrets.SERVER_HOST }} << 'EOF'
 
             aws ecr get-login-password --region ap-northeast-2 | \
-              docker login --username AWS --password-stdin \
+              sudo docker login --username AWS --password-stdin \
               ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
               
               cd /home/${{ secrets.SERVER_USER }}
