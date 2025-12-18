@@ -4,17 +4,28 @@ on:
   push:
     branches:
       - main
+      - dev
   pull_request:
     branches:
       - main
+      - dev
 
 jobs:
   spring-ci:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.new_version }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Generate Version
+        id: version
+        run: |
+          VERSION="1.0.${{ github.run_number }}"
+          echo "new_version=$VERSION" >> $GITHUB_OUTPUT
+          echo "✅ Generated version: $VERSION"
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -44,9 +55,13 @@ jobs:
 
       - name: Build & Push Express Image
         run: |
-          IMAGE=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/ktb-17/be:latest
-          docker build -t $IMAGE .
-          docker push $IMAGE
+          VERSION=${{ steps.version.outputs.new_version }}
+          REPO=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com/ktb-17/be
+          
+          docker build -t $REPO:$VERSION .
+          docker push $REPO:$VERSION
+          
+          echo "✅ Successfully pushed: $REPO:$VERSION"
 
   spring-cd:
     needs: spring-ci
@@ -62,13 +77,20 @@ jobs:
 
       - name: Deploy to EC2 via Docker Compose
         run: |
-          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER}}@${{ secrets.SERVER_HOST }} << 'EOF'
+          VERSION="${{ needs.react-ci.outputs.version }}"
+
+          ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER}}@${{ secrets.SERVER_HOST }} << EOF
 
             aws ecr get-login-password --region ap-northeast-2 | \
               sudo docker login --username AWS --password-stdin \
               ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.ap-northeast-2.amazonaws.com
               
               cd /home/${{ secrets.SERVER_USER }}
-              sudo docker compose pull
-              sudo docker compose up -d
+          
+              echo "📦 Pulling image: fe:$VERSION"
+
+              sudo BACKEND_VERSION=$VERSION docker compose pull
+              sudo BACKEND_VERSION=$VERSION docker compose up -d --remove-orphans
+            
+              echo "✅ Deployment completed: version $VERSION"
           EOF
