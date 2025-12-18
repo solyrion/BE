@@ -77,7 +77,7 @@ jobs:
 
       - name: Deploy to EC2 via Docker Compose
         run: |
-          VERSION="${{ needs.react-ci.outputs.version }}"
+          VERSION="${{ needs.spring-ci.outputs.version }}"
 
           ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no ${{ secrets.SERVER_USER}}@${{ secrets.SERVER_HOST }} << EOF
 
@@ -87,7 +87,7 @@ jobs:
               
               cd /home/${{ secrets.SERVER_USER }}
           
-              echo "📦 Pulling image: fe:$VERSION"
+              echo "📦 Pulling image: be:$VERSION"
 
               sudo BACKEND_VERSION=$VERSION docker compose pull
               sudo BACKEND_VERSION=$VERSION docker compose up -d --remove-orphans
