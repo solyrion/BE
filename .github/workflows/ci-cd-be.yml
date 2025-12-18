@@ -92,5 +92,5 @@ jobs:
               sudo BACKEND_VERSION=$VERSION docker compose pull
               sudo BACKEND_VERSION=$VERSION docker compose up -d --remove-orphans
             
-              echo "✅ Deployment completed: version $VERSION"
+              echo "✅ Deployment completed: version $VERSION" 
           EOF
